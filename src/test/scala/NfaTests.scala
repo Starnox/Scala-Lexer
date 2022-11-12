@@ -1,7 +1,7 @@
 class NfaTests extends munit.FunSuite {
 
   test("Nfa from Eps") {
-    //println(Nfa.fromPrenex("eps"))
+    //sprintln(Nfa.fromPrenex("eps"))
     //println(Nfa.fromPrenex("eps").accepts(""))
     assert(Nfa.fromPrenex("eps").accepts(""))
   }
@@ -14,12 +14,14 @@ class NfaTests extends munit.FunSuite {
   test("Nfa from char") {
     //print(Nfa.fromPrenex("a"))
     assert (Nfa.fromPrenex("a").accepts("a"))
+    assert (!Nfa.fromPrenex("a").accepts("b"))
   }
 
   test("Nfa from complex expression 1") {
     val s = "CONCAT a b"
     //print(Nfa.fromPrenex(s))
     assert (Nfa.fromPrenex(s).accepts("ab"))
+    assert (!Nfa.fromPrenex(s).accepts("abb"))
   }
 
   test("Nfa from complex expression 1 with bad input") {
@@ -33,6 +35,7 @@ class NfaTests extends munit.FunSuite {
     //print(Nfa.fromPrenex(s))
     assert (Nfa.fromPrenex(s).accepts("a"))
     assert (Nfa.fromPrenex(s).accepts("b"))
+    assert (!Nfa.fromPrenex(s).accepts("ab"))
   }
 
   test("Nfa from complex expression 2 with bad input") {

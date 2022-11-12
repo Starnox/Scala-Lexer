@@ -1,3 +1,6 @@
+// AST = Abstract Syntax Tree
+// The Program will do a conversion from Prenex to AFN and then from AFN to AFD
+
 class Dfa[A] (/* TODO : define the constructor params */){
 
   // The following methods are only the methods directly called by the test suite. You can (and should) define more.
@@ -12,6 +15,7 @@ class Dfa[A] (/* TODO : define the constructor params */){
 
   def isFinal(state: A): Boolean = ???  // TODO implement isFinal
 }
+
 
 // This is a companion object to the Dfa class. This allows us to call the method fromPrenex without instantiating the Dfa class beforehand.
 // You can think of the methods of this object like static methods of the Dfa class
