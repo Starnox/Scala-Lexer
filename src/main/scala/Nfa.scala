@@ -100,10 +100,10 @@ object Nfa {
     var transitions = Map[(Int, Char), Set[Int]]()
 
     // add the transitions from the new start state to the start states of nfaA and nfaB
-    transitions += (newStart, 'e') -> Set(nfaA.start, nfaB.start)
+    transitions += (newStart, 'ε') -> Set(nfaA.start, nfaB.start)
     // add the transitions from the final states of nfaA and nfaB to the new end state
-    transitions += (nfaA.getLastState, 'e') -> Set(newEnd)
-    transitions += (nfaB.getLastState, 'e') -> Set(newEnd)
+    transitions += (nfaA.getLastState, 'ε') -> Set(newEnd)
+    transitions += (nfaB.getLastState, 'ε') -> Set(newEnd)
 
     // add the transitions from nfaA and nfaB to the new transitions map
     transitions ++= nfaA.transitions
@@ -113,14 +113,33 @@ object Nfa {
     new Nfa[Int](newStart, Set(newEnd), transitions)
   }
 
-  // TODO handle the ' ' case
+  def customSplit(str: String) : List[String] = {
+    // split the string str by whitespace but keep the whitespace in quotes
+    // e.g. "a ' ' b" -> List("a", " ", "b")
+    var result = List[String]()
+    var current = ""
+    var inQuotes = false
+    for (c <- str) {
+      if (c == ' ' && !inQuotes) {
+        result = current :: result
+        current = ""
+      }
+      else {
+        if (c == '\'')
+          inQuotes = !inQuotes
+        current += c
+      }
+    }
+    result = current :: result
+    result.reverse
+  }
+
   def fromPrenex(str: String): Nfa[Int] = {
     // create a new NFA from a prenex expression
     // example of a prenex polish expression: CONCAT UNION a b UNION c d => (a U b)(c U d)
     // Split string into tokens which will be in polish notation
-    var tokens = str.split(" ").toList
+    var tokens = customSplit(str)
 
-    println(tokens)
     if (tokens.isEmpty) {
       // if the string is empty, return an NFA that accepts the empty string
       return new Nfa[Int](0, Set(0), Map())
@@ -150,6 +169,21 @@ object Nfa {
       if (token == "eps") {
         stack.pop()
         return new Nfa[Int](counter, Set(counter), transitions)
+      }
+      else if (token == "' '") {
+        stack.pop()
+        // check for space
+        // create 2 new states
+        val q0 = counter
+        val q1 = counter + 1
+        counter += 2
+
+        // add the transition
+        transitions = transitions + ((q0, ' ') -> Set(q1))
+        // add the final state
+        finalStates = finalStates + q1
+
+        return new Nfa[Int](q0, finalStates, transitions)
       }
       // check if the token is a character
       else if (token.length == 1) {
