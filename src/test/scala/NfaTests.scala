@@ -1,38 +1,32 @@
 class NfaTests extends munit.FunSuite {
 
   test("Nfa from Eps") {
-    //sprintln(Nfa.fromPrenex("eps"))
-    //println(Nfa.fromPrenex("eps").accepts(""))
     assert(Nfa.fromPrenex("eps").accepts(""))
+    //assert(!Nfa.fromPrenex("eps").accepts(" "))
   }
 
   test("Nfa from Void") {
-    //print(Nfa.fromPrenex("void"))
     assert (!Nfa.fromPrenex("void").accepts(""))
   }
 
   test("Nfa from char") {
-    //print(Nfa.fromPrenex("a"))
     assert (Nfa.fromPrenex("a").accepts("a"))
     assert (!Nfa.fromPrenex("a").accepts("b"))
   }
 
   test("Nfa from complex expression 1") {
     val s = "CONCAT a b"
-    //print(Nfa.fromPrenex(s))
     assert (Nfa.fromPrenex(s).accepts("ab"))
     assert (!Nfa.fromPrenex(s).accepts("abb"))
   }
 
   test("Nfa from complex expression 1 with bad input") {
     val s = "CONCAT a b"
-    //print(Nfa.fromPrenex(s))
     assert (!Nfa.fromPrenex(s).accepts("aba"))
   }
 
   test("Nfa from complex expression 2") {
     val s = "UNION a b"
-    //print(Nfa.fromPrenex(s))
     assert (Nfa.fromPrenex(s).accepts("a"))
     assert (Nfa.fromPrenex(s).accepts("b"))
     assert (!Nfa.fromPrenex(s).accepts("ab"))
@@ -40,16 +34,12 @@ class NfaTests extends munit.FunSuite {
 
   test("Nfa from complex expression 2 with bad input") {
     val s = "UNION a b"
-    //print(Nfa.fromPrenex(s))
-    //print(Nfa.fromPrenex(s).accepts("ab"))
     assert (!Nfa.fromPrenex(s).accepts("ab"))
     assert (!Nfa.fromPrenex(s).accepts("ba"))
   }
 
   test("Nfa from star expression 1") {
     val s = "STAR a"
-    //print(Nfa.fromPrenex(s))
-    //print(Nfa.fromPrenex(s).accepts("ab"))
     assert (Nfa.fromPrenex(s).accepts(""))
     assert (Nfa.fromPrenex(s).accepts("a"))
     assert (Nfa.fromPrenex(s).accepts("aaaaaaaaaaaaa"))
@@ -58,38 +48,32 @@ class NfaTests extends munit.FunSuite {
 
   test("Nfa from star expression with bad string") {
     val s = "STAR a"
-    //print(Nfa.fromPrenex(s))
     assert (!Nfa.fromPrenex(s).accepts("aaaabaaaaaaaa"))
 
   }
 
   test("Nfa from complex expression 3") {
     val s = "STAR UNION a b"
-    //print(Nfa.fromPrenex(s))
     assert (Nfa.fromPrenex(s).accepts("aaababaaabaaaaa"))
   }
 
   test("Nfa from complex expression 4") {
     val s = "STAR CONCAT a b"
-    //print(Nfa.fromPrenex(s))
     assert (Nfa.fromPrenex(s).accepts("ababababab"))
   }
 
   test("Nfa from complex expression 5 and bad input") {
     val s = "STAR CONCAT a b"
-    //print(Nfa.fromPrenex(s))
     assert (!Nfa.fromPrenex(s).accepts("abababababa"))
   }
 
   test("Nfa from complex expression 5") {
     val s = "CONCAT STAR a STAR b"
-    //print(Nfa.fromPrenex(s))
     assert (Nfa.fromPrenex(s).accepts("aaaaaaaaabbbbbb"))
   }
 
   test("Nfa from complex expression 6") {
     val s = "CONCAT UNION b STAR a STAR c"
-    //print(Nfa.fromPrenex(s))
     assert (Nfa.fromPrenex(s).accepts("aaaaaaaaaccccc"))
     assert (Nfa.fromPrenex(s).accepts("bccccccccc"))
 
@@ -97,7 +81,6 @@ class NfaTests extends munit.FunSuite {
 
   test("Nfa from complex expression 7") {
     val s = "CONCAT a STAR a"
-    // print(Nfa.fromPrenex(s))
     assert (Nfa.fromPrenex(s).accepts("aaa"))
     assert (!Nfa.fromPrenex(s).accepts(""))
 

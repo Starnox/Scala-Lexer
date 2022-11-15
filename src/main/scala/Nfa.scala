@@ -15,15 +15,16 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
     new Nfa(newStart, newFinalStates, newTransitions)
   }
 
+  def getAlphabet: Set[Char] = transitions.keySet.map(_._2)
+
   def next(state:A, c: Char): Set[A] = {
-    // create variable to hold the result
+    // create variable to hold the resul
     var result = transitions.getOrElse((state, c), Set())
     // add epsilon transitions
     val epsilonTransitions = transitions.getOrElse((state, 'ε'), Set())
     // apply the character transition to all states that can be reached by epsilon transitions
     result = result ++ epsilonTransitions.flatMap(next(_, c)) ++ result.flatMap(next(_, 'ε'))
-    // add the epsilon transitions that can be reached by the character transition
-    //result = result ++ result.flatMap(next(_, 'ε'))
+
     result
   }
 
@@ -42,7 +43,6 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
 
     // check if the set of states that we can get by following the transitions
     // for each character in the string contains a final state
-    // very similar to the last exercise in the first lab
     states.intersect(finalStates).nonEmpty
   }
 
@@ -63,7 +63,7 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
 
   override def toString: String = {
     // print the NFA in a readable format
-    val sb = new StringBuilder
+    val sb = new mutable.StringBuilder
     sb.append("NFA")
 
     // print the initial state
@@ -113,12 +113,14 @@ object Nfa {
     new Nfa[Int](newStart, Set(newEnd), transitions)
   }
 
+  // TODO handle the ' ' case
   def fromPrenex(str: String): Nfa[Int] = {
     // create a new NFA from a prenex expression
     // example of a prenex polish expression: CONCAT UNION a b UNION c d => (a U b)(c U d)
     // Split string into tokens which will be in polish notation
     var tokens = str.split(" ").toList
 
+    println(tokens)
     if (tokens.isEmpty) {
       // if the string is empty, return an NFA that accepts the empty string
       return new Nfa[Int](0, Set(0), Map())
@@ -151,6 +153,8 @@ object Nfa {
       }
       // check if the token is a character
       else if (token.length == 1) {
+        stack.pop()
+        // check for space
         // create 2 new states
         val q0 = counter
         val q1 = counter + 1
@@ -160,7 +164,7 @@ object Nfa {
         transitions = transitions + ((q0, token.charAt(0)) -> Set(q1))
         // add the final state
         finalStates = finalStates + q1
-        stack.pop()
+
         return new Nfa[Int](q0, finalStates, transitions)
       }
       else if (token == "UNION") {
