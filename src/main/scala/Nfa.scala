@@ -5,7 +5,12 @@ import scala.collection.mutable
 // δ: transition function -> maps (state, character) to a set of states -> non-deterministic
 class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Char), Set[A]]) {
 
-  // applies the f function to all states in the NFA and returns a new NFA with the new states
+  /**
+   * Map the states of this NFA to a new set of states using the function f
+   * @param f the function to map the states
+   * @tparam B the type of the new states
+   * @return a new NFA with the states mapped using the function f
+   */
   def map[B](f: A => B) : Nfa[B] = {
     val newStart = f(start)
     val newFinalStates = finalStates.map(f)
@@ -13,22 +18,32 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
     new Nfa(newStart, newFinalStates, newTransitions)
   }
 
+  /**
+   * Get the alphabet of the NFA
+   * @return a set of characters that are in the alphabet
+   */
   def getAlphabet: Set[Char] = transitions.keySet.map(_._2)
 
+  /**
+   * Get the next states of the NFA by applying the transition function including the epsilon transitions
+   * @param state the current state
+   * @param c the character
+   * @return a set of next states
+   */
   def next(state:A, c: Char): Set[A] = {
-    // create variable to hold the resul
-    var result = transitions.getOrElse((state, c), Set())
-    // add epsilon transitions
-    val epsilonTransitions = transitions.getOrElse((state, 'ε'), Set())
-    // apply the character transition to all states that can be reached by epsilon transitions
-    result = result ++ epsilonTransitions.flatMap(next(_, c)) ++ result.flatMap(next(_, 'ε'))
-
+    val epsilonTransitions = transitions.getOrElse((state, 'ε'), Set()) // get the epsilon transitions
+    var result = transitions.getOrElse((state, c), Set()) // get the transitions for the character
+    result ++= result.flatMap(next(_, 'ε')) // add the epsilon transitions for the transitions for the character
+    result ++= epsilonTransitions.flatMap(next(_, c)) // apply the character transition to all states that can be reached by epsilon transitions
     result
   }
 
+  /**
+   * Check if the NFA accepts the string str
+   * @param str the string to check
+   * @return true if the NFA accepts the string, false otherwise
+   */
   def accepts(str: String): Boolean = {
-    // Check if the NFA accepts the string str by simulating the NFA on the string with epsilon transitions
-    // and checking if the final state is in the set of final states
     if (finalStates.contains(start))
       return true
 
@@ -37,25 +52,33 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
     if(str == "")
       states = next(start, 'ε')
     else
-      states = str.foldLeft(Set(start))((states, c) => {states.flatMap(next(_, c)) } )
+      states = str.foldLeft(Set(start))((states, c) => {states.flatMap(next(_, c)) } ) // all possible states after c
 
-    // check if the set of states that we can get by following the transitions
-    // for each character in the string contains a final state
     states.intersect(finalStates).nonEmpty
   }
 
+  /**
+   * Get all states of the NFA
+   * @return a set of all states
+   */
   def getStates : Set[A] = {
-    // get all states of the NFA
     transitions.keys.map(_._1).toSet
   }
 
+  /**
+   * Get last state of the NFA
+   * @return the last state
+   */
   def getLastState: A = {
-    // get the last state of the NFA
     finalStates.last
   }
 
+  /**
+   * Check if the state is in the final states set thus being a final state
+   * @param state the state to check
+   * @return true if the state is in the final states set, false otherwise
+   */
   def isFinal(state: A): Boolean = {
-    // check if the state is in the final states set
     finalStates.contains(state)
   }
 
