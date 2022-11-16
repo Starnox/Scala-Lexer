@@ -1,10 +1,8 @@
 import scala.collection.mutable
-import scala.collection.mutable.Stack
 // NFA (q0, F, δ)
 // q0: initial state
 // F: set of final states
 // δ: transition function -> maps (state, character) to a set of states -> non-deterministic
-
 class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Char), Set[A]]) {
 
   // applies the f function to all states in the NFA and returns a new NFA with the new states
@@ -79,228 +77,175 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
   }
 }
 
-// This is a companion object to the Nfa class. This allows us to call the method fromPrenex without instantiating the Nfa class beforehand.
-// You can think of the methods of this object like static methods of the Nfa class
 object Nfa {
+  /**
+   * This method takes a string in prenex normal form and returns an NFA that accepts the language of the string
+   * @param str the string in prenex normal form
+   * @return an NFA that accepts the language of the string
+   */
+  def fromPrenex(str: String): Nfa[Int] = {
 
-  def getNewState(nfa: Nfa[Int]): Int = {
-    // get the last state of the NFA and increment it by 1
-    nfa.getLastState + 1
+    // Split string into tokens
+    var tokens = Helpers.customSplit(str)
+    var counter = 0
+
+    def createNFA(): Nfa[Int] = {
+      // if the tokens list is empty, return an NFA that accepts the empty string
+      if (tokens.isEmpty) {
+        return new Nfa[Int](counter, Set(counter), Map())
+      }
+
+      // get the next token and remove it from the list
+      val token = tokens.head
+      tokens = tokens.tail
+
+      val prevState = counter
+      token match {
+        case "eps" => {
+          new Nfa[Int](counter, Set(counter), Map())
+        }
+        case "' '" => {
+          counter += 2
+          fromCharacter(' ', prevState)
+        }
+        case "UNION" => {
+          counter += 2
+          fromUnion(createNFA(), createNFA(), prevState)
+        }
+        case "CONCAT" => {
+          counter += 2
+          fromConcat(createNFA(), createNFA(), prevState)
+        }
+        case "STAR" => {
+          counter += 2
+          fromStar(createNFA(), prevState)
+        }
+
+        case "PLUS" => {
+          counter += 2
+          fromPlus(createNFA(), prevState)
+        }
+        case "MAYBE" => fromMaybe(createNFA())
+        case "void" => new Nfa[Int](0, Set[Int](), Map())
+        case token => {
+          // if the token is a character, return the NFA with the current counter as the start state and the final state
+          if (token.length == 1) {
+            counter += 2
+            return fromCharacter(token.charAt(0), prevState)
+          }
+          throw new IllegalArgumentException("Invalid token: " + token)
+        }
+      }
+    }
+
+    createNFA()
   }
 
-  def fromUnion(nfaA: Nfa[Int], nfaB: Nfa[Int]): Nfa[Int] = {
-    // Create a new NFA that accepts the union of the languages of nfaA and nfaB
-    // The new NFA should have a new start state, new final states and new transitions
-    // The new start state should have transitions to the start states of nfaA and nfaB
+  /**
+   * This method takes a character and returns an NFA that accepts the language of the character
+   * @param c the character
+   * @param stateCounter the counter for the states
+   * @return an NFA that accepts the language of the character
+   */
+  def fromCharacter(c: Char, stateCounter: Int): Nfa[Int] = {
+    val start       = stateCounter
+    val finalStates = Set(stateCounter + 1)
+    val transitions = Map((start, c) -> finalStates)
 
-    // get the new start state that is the maximum of the last states of nfaA and nfaB
-    val newStart = getNewState(nfaA) max getNewState(nfaB)
-    val newEnd = newStart + 1
+    new Nfa(start, finalStates, transitions)
+  }
 
-    var transitions = Map[(Int, Char), Set[Int]]()
+  /**
+   * Create a new NFA that accepts the union of the languages of nfaA and nfaB
+   * @param nfaA the first NFA
+   * @param nfaB the second NFA
+   * @param stateCounter the counter for the states
+   * @return a new NFA that accepts the union of the languages of nfaA and nfaB
+   */
+  def fromUnion(nfaA: Nfa[Int], nfaB: Nfa[Int], stateCounter: Int): Nfa[Int] = {
+    val newStart  = stateCounter
+    val newEnd    = stateCounter + 1
 
+    var transitions = nfaA.transitions ++ nfaB.transitions
     // add the transitions from the new start state to the start states of nfaA and nfaB
     transitions += (newStart, 'ε') -> Set(nfaA.start, nfaB.start)
     // add the transitions from the final states of nfaA and nfaB to the new end state
     transitions += (nfaA.getLastState, 'ε') -> Set(newEnd)
     transitions += (nfaB.getLastState, 'ε') -> Set(newEnd)
 
-    // add the transitions from nfaA and nfaB to the new transitions map
-    transitions ++= nfaA.transitions
-    transitions ++= nfaB.transitions
+    val finalState = Set(newEnd)
 
     // create the new NFA
-    new Nfa[Int](newStart, Set(newEnd), transitions)
+    new Nfa[Int](newStart, finalState, transitions)
   }
 
-  def customSplit(str: String) : List[String] = {
-    // split the string str by whitespace but keep the whitespace in quotes
-    // e.g. "a ' ' b" -> List("a", " ", "b")
-    var result = List[String]()
-    var current = ""
-    var inQuotes = false
-    for (c <- str) {
-      if (c == ' ' && !inQuotes) {
-        result = current :: result
-        current = ""
-      }
-      else {
-        if (c == '\'')
-          inQuotes = !inQuotes
-        current += c
-      }
-    }
-    result = current :: result
-    result.reverse
+  /**
+   * Create a new NFA that accepts the concatenation of the languages of nfaA and nfaB
+   * @param nfaA the first NFA
+   * @param nfaB the second NFA
+   * @param stateCounter the counter for the states
+   * @return a new NFA that accepts the concatenation of the languages of nfaA and nfaB
+   */
+  def fromConcat(nfaA: Nfa[Int], nfaB: Nfa[Int], stateCounter: Int) : Nfa[Int] = {
+    var transitions = nfaA.transitions ++ nfaB.transitions
+    // add the epsilon transition from the final state of nfaA to the start state of nfaB
+    transitions += (nfaA.getLastState, 'ε') -> Set(nfaB.start)
+    new Nfa[Int](nfaA.start, nfaB.finalStates, transitions)
   }
 
-  def fromPrenex(str: String): Nfa[Int] = {
-    // create a new NFA from a prenex expression
-    // example of a prenex polish expression: CONCAT UNION a b UNION c d => (a U b)(c U d)
-    // Split string into tokens which will be in polish notation
-    var tokens = customSplit(str)
+  /**
+   * Create a new NFA that accepts the Kleene star of the language of nfa
+   * @param nfa the NFA
+   * @param stateCounter the counter for the states
+   * @return a new NFA that accepts the Kleene star of the language of nfa
+   */
+  def fromStar(nfa: Nfa[Int], stateCounter: Int): Nfa[Int] = {
+    val newStart  = stateCounter
+    val newEnd    = stateCounter + 1
 
-    if (tokens.isEmpty) {
-      // if the string is empty, return an NFA that accepts the empty string
-      return new Nfa[Int](0, Set(0), Map())
-    }
+    var transitions = nfa.transitions
+    // add the transitions from the new start state to the start states of nfaA and nfaB
+    transitions += (newStart, 'ε') -> Set(nfa.start, newEnd)
+    // add the transitions from the final states of nfaA and nfaB to the new end state
+    transitions += (nfa.getLastState, 'ε') -> Set(newEnd, nfa.start)
 
-    val stack = mutable.Stack[String]()
-
-    var counter = 0
-    def createNFA(): Nfa[Int] = {
-      // Create the transitions
-      var transitions = Map[(Int, Char), Set[Int]]()
-      // Create the final states
-      var finalStates = Set[Int]()
-
-
-      if (tokens.isEmpty) {
-        // if the tokens list is empty, return an NFA that accepts the empty string
-        return new Nfa[Int](counter, Set(counter), Map())
-      }
-
-      stack.push(tokens.head)
-      tokens = tokens.tail
-      // get the top of the stack and add the next token to the stack
-      val token = stack.top
-
-      // if the token is epsilon, return the NFA with the current counter as the start state and the final state
-      if (token == "eps") {
-        stack.pop()
-        return new Nfa[Int](counter, Set(counter), transitions)
-      }
-      else if (token == "' '") {
-        stack.pop()
-        // check for space
-        // create 2 new states
-        val q0 = counter
-        val q1 = counter + 1
-        counter += 2
-
-        // add the transition
-        transitions = transitions + ((q0, ' ') -> Set(q1))
-        // add the final state
-        finalStates = finalStates + q1
-
-        return new Nfa[Int](q0, finalStates, transitions)
-      }
-      // check if the token is a character
-      else if (token.length == 1) {
-        stack.pop()
-        // check for space
-        // create 2 new states
-        val q0 = counter
-        val q1 = counter + 1
-        counter += 2
-
-        // add the transition
-        transitions = transitions + ((q0, token.charAt(0)) -> Set(q1))
-        // add the final state
-        finalStates = finalStates + q1
-
-        return new Nfa[Int](q0, finalStates, transitions)
-      }
-      else if (token == "UNION") {
-        // create 2 new states
-        val q0 = counter
-        val q1 = counter + 1
-        counter += 2
-
-        // create the NFA for the first operand
-        val nfa1 = createNFA()
-        // create the NFA for the second operand
-        val nfa2 = createNFA()
-
-        // return the NFA for the union
-        // add the transitions
-        transitions = transitions ++ nfa1.transitions ++ nfa2.transitions
-        // add the transitions from the new start state to the start states of nfa1 and nfa2
-        transitions = transitions + ((q0, 'ε') -> Set(nfa1.start, nfa2.start))
-
-        // add the transitions from all final states of nfa1 and nfa2 to the new end state
-        transitions = transitions + ((nfa1.getLastState, 'ε') -> Set(q1))
-        transitions = transitions + ((nfa2.getLastState, 'ε') -> Set(q1))
-
-        // add the final state
-        finalStates = finalStates + q1
-        stack.pop()
-        return new Nfa[Int](q0, finalStates, transitions)
-      }
-      else if (token == "CONCAT") {
-        // create the NFA for the first operand
-        val nfa1 = createNFA()
-        // create the NFA for the second operand
-        val nfa2 = createNFA()
-
-        // add epsilon transition between the final state of the first NFA and the start state of the second NFA
-        transitions = transitions + ((nfa1.getLastState, 'ε') -> Set(nfa2.start))
-        // add the transitions
-        transitions = transitions ++ nfa1.transitions
-        transitions = transitions ++ nfa2.transitions
-
-        // add the final state
-        finalStates = nfa2.finalStates
-        stack.pop()
-        return new Nfa[Int](nfa1.start, finalStates, transitions)
-      }
-      else if (token == "STAR") {
-        // create 2 new states
-        val q0 = counter
-        val q1 = counter + 1
-        counter += 2
-
-        // create the NFA for the operand
-        val nfa = createNFA()
-
-        // add the transitions
-        transitions = transitions ++ nfa.transitions
-        // add the transitions from the new start state to the start state of nfa and the new end state
-        transitions = transitions + ((q0, 'ε') -> Set(nfa.start, q1))
-        // add the transitions from the final state of nfa to the new end state and to the start state of nfa
-        transitions = transitions + ((nfa.getLastState, 'ε') -> Set(q1, nfa.start))
-
-        // add the final state
-        finalStates = finalStates + q1
-        stack.pop()
-        return new Nfa[Int](q0, finalStates, transitions)
-      }
-      else if (token == "PLUS") {
-        // create 2 new states
-        val q0 = counter
-        val q1 = counter + 1
-        counter += 2
-
-        // create the NFA for the operand
-        val nfa = createNFA()
-
-        // add the transitions
-        transitions = transitions ++ nfa.transitions
-        // add the transitions from the new start state to the start state of nfa and the new end state
-        transitions = transitions + ((q0, 'ε') -> Set(nfa.start))
-        // add the transitions from the final state of nfa to the new end state and to the start state of nfa
-        transitions = transitions + ((nfa.getLastState, 'ε') -> Set(q1, nfa.start))
-
-        // add the final state
-        finalStates = finalStates + q1
-        stack.pop()
-        return new Nfa[Int](q0, finalStates, transitions)
-      }
-      else if (token == "MAYBE") {
-        // union between the NFA for the operand and the NFA for epsilon
-        fromUnion(createNFA(), fromPrenex("eps"))
-      }
-      else if (token == "void") {
-        return new Nfa[Int](0, Set[Int](), transitions)
-      }
-      else {
-        throw new IllegalArgumentException("Invalid token: " + token)
-      }
-
-      new Nfa[Int](0, Set(0), transitions)
-    }
-    createNFA()
+    val finalState = Set(newEnd)
+    // create the new NFA
+    new Nfa[Int](newStart, finalState, transitions)
   }
 
-  // You can add more methods to this object
+  /**
+   * Create a new NFA that accepts the Kleene plus of the language of nfa
+   * @param nfa the NFA
+   * @param stateCounter the counter for the states
+   * @return a new NFA that accepts the Kleene plus of the language of nfa
+   */
+  def fromPlus (nfa: Nfa[Int], stateCounter: Int): Nfa[Int] = {
+    val newStart  = stateCounter
+    val newEnd    = stateCounter + 1
+
+    var transitions = nfa.transitions
+    // add the transitions from the new start state to the start states of nfaA and nfaB
+    transitions += (newStart, 'ε') -> Set(nfa.start)
+    // add the transitions from the final states of nfaA and nfaB to the new end state
+    transitions += (nfa.getLastState, 'ε') -> Set(newEnd, nfa.start)
+
+    val finalState = Set(newEnd)
+    // create the new NFA
+    new Nfa[Int](newStart, finalState, transitions)
+  }
+
+  /**
+   * Create a new NFA that accepts the language of nfa with an optional character
+   * @param nfa the NFA
+   * @return a new NFA that accepts the language of nfa with an optional character
+   */
+  def fromMaybe(nfa: Nfa[Int]) : Nfa[Int] = {
+    var transitions = nfa.transitions
+    // add the epsilon transition from the start state to the final state
+    transitions = transitions + ((nfa.start, 'ε') -> Set(nfa.getLastState))
+    transitions = transitions ++ nfa.transitions
+
+    new Nfa[Int](nfa.start, nfa.finalStates, transitions)
+  }
 }

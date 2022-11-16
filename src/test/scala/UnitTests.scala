@@ -9,6 +9,12 @@ class UnitTests extends munit.FunSuite {
     assert(Nfa.fromPrenex("UNION a eps").accepts(""))
   }
 
+  test("test MAYBE nfa") {
+    assert(Nfa.fromPrenex("MAYBE a").accepts(""))
+    assert(Nfa.fromPrenex("MAYBE a").accepts("a"))
+    assert(!Nfa.fromPrenex("MAYBE a").accepts("b"))
+  }
+
   test("test concat and union") {
     //println(Nfa.fromPrenex("UNION CONCAT a b CONCAT c d"))
 //    assert(Nfa.fromPrenex("UNION CONCAT a b CONCAT c d").accepts("ab"))
