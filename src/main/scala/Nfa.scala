@@ -44,13 +44,10 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
    * @return true if the NFA accepts the string, false otherwise
    */
   def accepts(str: String): Boolean = {
-    if (finalStates.contains(start))
-      return true
-
     var states = Set(start)
 
     if(str == "")
-      states = next(start, 'ε')
+      states = states ++ next(start, 'ε')
     else
       states = str.foldLeft(Set(start))((states, c) => {states.flatMap(next(_, c)) } ) // all possible states after c
 
