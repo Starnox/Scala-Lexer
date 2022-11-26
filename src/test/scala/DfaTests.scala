@@ -62,6 +62,16 @@ class DfaTests extends munit.FunSuite {
     assert(!Dfa.fromPrenex(s).accepts("baaabbbabaacabbbaaabbb"))
   }
 
+  test("A to Z (2p)") {
+    val str = "[A-Z]"
+    //assert(Regex.toPrenex(str) == "UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION A B C D E F G H I J K L M N O P R S T U V W X Y Z")
+    val s = "UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION A B C D E F G H I J K L M N O P R S T U V W X Y Z"
+    val dfa = Dfa.fromPrenex(s)
+    assert(dfa.accepts("K"))
+    assert(dfa.accepts("T"))
+    assert(dfa.accepts("U"))
+  }
+
   test("Test complex 2 (10p)") {
     val s = "STAR CONCAT a b"
     assert(Dfa.fromPrenex(s).accepts("ababababab"))

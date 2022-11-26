@@ -9,6 +9,20 @@ class NfaTests extends munit.FunSuite {
     assert (!Nfa.fromPrenex("void").accepts(""))
   }
 
+  test("Nfa from AST") {
+    val ast = Ast.fromPrenex("CONCAT a CONCAT STAR b CONCAT c STAR d")
+    println(ast)
+    println(Nfa.fromAst(ast))
+    val nfa = Nfa.fromAst(ast)
+    assert(nfa.accepts("ac"))
+    assert(nfa.accepts("acd"))
+    assert(nfa.accepts("abc"))
+    assert(nfa.accepts("abcd"))
+    assert(nfa.accepts("abbbbbbbbcdddd"))
+    assert(nfa.accepts("abbbbbbbbc"))
+    assert(nfa.accepts("acddd"))
+  }
+
   test("Nfa from char") {
     assert (Nfa.fromPrenex("a").accepts("a"))
     assert (!Nfa.fromPrenex("a").accepts("b"))

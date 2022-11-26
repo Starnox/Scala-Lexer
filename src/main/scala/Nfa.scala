@@ -4,6 +4,7 @@ import scala.collection.mutable
 // F: set of final states
 // δ: transition function -> maps (state, character) to a set of states -> non-deterministic
 class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Char), Set[A]]) {
+  var epsilonClosureCache: Map[A, Set[A]] = Map[A, Set[A]]()
 
   /**
    * Map the states of this NFA to a new set of states using the function f
@@ -18,11 +19,42 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
     new Nfa(newStart, newFinalStates, newTransitions)
   }
 
+  def preCalculateEpsilonCLosure(): Map[A, Set[A]] = {
+    val epsilonClosure = mutable.Map[A, Set[A]]()
+    val states = getStates
+    states.foreach(state => epsilonClosure += (state) -> getEpsilonClosure(state))
+    epsilonClosure.toMap
+  }
+
   /**
    * Get the alphabet of the NFA
    * @return a set of characters that are in the alphabet
    */
   def getAlphabet: Set[Char] = transitions.keySet.map(_._2)
+
+  /**
+   * Epislon closure of state
+   * @param state the state to get the epsilon closure of
+   * @return the epsilon closure of the state
+   */
+  def getEpsilonClosure(state: A): Set[A] = {
+    val visited = mutable.Set[A]()
+    val stack = mutable.Stack[A]()
+    stack.push(state)
+    while (stack.nonEmpty) {
+      val state = stack.pop()
+      if (!visited.contains(state)) {
+        visited.add(state)
+        val epsilonTransitions = transitions.getOrElse((state, 'ε'), Set())
+        epsilonTransitions.foreach(stack.push)
+      }
+    }
+    // filter out the states that only have epsilon transitions
+    val alphabet = getAlphabet - 'ε'
+    visited.filter(s => {
+      alphabet.exists(c => transitions.contains((s, c))) || finalStates.contains(s)
+    }).toSet
+  }
 
   /**
    * Get the next states of the NFA by applying the transition function including the epsilon transitions
@@ -31,10 +63,9 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
    * @return a set of next states
    */
   def next(state:A, c: Char): Set[A] = {
-    val epsilonTransitions = transitions.getOrElse((state, 'ε'), Set()) // get the epsilon transitions
-    var result = transitions.getOrElse((state, c), Set()) // get the transitions for the character
-    result ++= result.flatMap(next(_, 'ε')) // add the epsilon transitions for the transitions for the character
-    result ++= epsilonTransitions.flatMap(next(_, c)) // apply the character transition to all states that can be reached by epsilon transitions
+    var result = Set[A]()
+    val epsilonClosure = epsilonClosureCache.getOrElse(state, Set()) // get the epsilon closure of the state
+    epsilonClosure.foreach(s => result = result ++ transitions.getOrElse((s, c), Set())) // add the transitions for the epsilon closure
     result
   }
 
@@ -44,14 +75,16 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
    * @return true if the NFA accepts the string, false otherwise
    */
   def accepts(str: String): Boolean = {
-    var states = Set(start)
+    var resStates = Set(start)
+    epsilonClosureCache = preCalculateEpsilonCLosure()
 
     if(str == "")
-      states = states ++ next(start, 'ε')
+      resStates = resStates ++ next(start, 'ε')
     else
-      states = str.foldLeft(Set(start))((states, c) => {states.flatMap(next(_, c)) } ) // all possible states after c
+      resStates = str.foldLeft(epsilonClosureCache.getOrElse(start,Set()))((states, c) => {states.flatMap(next(_, c)) } ) // all possible states after c
 
-    states.intersect(finalStates).nonEmpty
+    resStates = resStates.flatMap(getEpsilonClosure) // get the epsilon closure of all states
+    resStates.intersect(finalStates).nonEmpty
   }
 
   /**
@@ -98,67 +131,80 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
 }
 
 object Nfa {
+
+  def fromAst(ast: Ast[Char,String]): Nfa[Int] = {
+    // create a new NFA from an AST
+    var counter = 0
+
+    // go recursively through the AST and create the transitions
+    def go(ast: Ast[Char,String]): Nfa[Int] = {
+      if (ast.isOperator) {
+        ast.getValue match {
+          // Concatenation
+          case Right("CONCAT") => {
+            val first = go(ast.getFirst)
+            val second = go(ast.getSecond)
+            var transitions = first.transitions ++ second.transitions
+            transitions += ((first.getLastState, 'ε') -> Set(second.start))
+            val finalStates = second.finalStates
+            new Nfa(first.start, finalStates, transitions)
+          }
+          // Union
+          case Right("UNION") => {
+            val left = go(ast.getFirst)
+            val right = go(ast.getSecond)
+            counter += 2
+
+            val newStart = counter - 2
+            val newFinal = counter - 1
+
+            var transitions = left.transitions ++ right.transitions
+            transitions += ((newStart, 'ε') -> Set(left.start, right.start))
+            transitions += ((left.getLastState, 'ε') -> Set(newFinal))
+            transitions += ((right.getLastState, 'ε') -> Set(newFinal))
+
+            new Nfa(newStart, Set(newFinal), transitions)
+          }
+          // Kleene star
+          case Right("STAR") => {
+            val nfa = go(ast.getFirst)
+            counter += 2
+            val newStart = counter - 2
+            val newFinal = counter - 1
+
+            var transitions = nfa.transitions
+            transitions += ((newStart, 'ε') -> Set(nfa.start, newFinal))
+            transitions += ((nfa.getLastState, 'ε') -> Set(newFinal, nfa.start))
+
+            new Nfa(newStart, Set(newFinal), transitions)
+          }
+          case _ => throw new Exception("Unknown operator")
+        }
+      }
+      else {
+        ast.getValue match {
+          case Left(c) => {
+            counter += 2
+            val transitions = ((counter - 2, c) -> Set(counter-1))
+            new Nfa(counter - 2, Set(counter - 1), Map(transitions))
+          }
+          case _ => throw new Exception("Invalid character")
+        }
+      }
+    }
+    go(ast)
+  }
+
   /**
    * This method takes a string in prenex normal form and returns an NFA that accepts the language of the string
    * @param str the string in prenex normal form
    * @return an NFA that accepts the language of the string
    */
   def fromPrenex(str: String): Nfa[Int] = {
-
-    // Split string into tokens
-    var tokens = Helpers.customSplit(str)
-    var counter = 0
-
-    def createNFA(): Nfa[Int] = {
-      // if the tokens list is empty, return an NFA that accepts the empty string
-      if (tokens.isEmpty) {
-        return new Nfa[Int](counter, Set(counter), Map())
-      }
-
-      // get the next token and remove it from the list
-      val token = tokens.head
-      tokens = tokens.tail
-
-      val prevState = counter
-      token match {
-        case "eps" => {
-          new Nfa[Int](counter, Set(counter), Map())
-        }
-        case "' '" => {
-          counter += 2
-          fromCharacter(' ', prevState)
-        }
-        case "UNION" => {
-          counter += 2
-          fromUnion(createNFA(), createNFA(), prevState)
-        }
-        case "CONCAT" => {
-          counter += 2
-          fromConcat(createNFA(), createNFA(), prevState)
-        }
-        case "STAR" => {
-          counter += 2
-          fromStar(createNFA(), prevState)
-        }
-
-        case "PLUS" => {
-          counter += 2
-          fromPlus(createNFA(), prevState)
-        }
-        case "MAYBE" => fromMaybe(createNFA())
-        case "void" => new Nfa[Int](0, Set[Int](), Map())
-        case token => {
-          // if the token is a character, return the NFA with the current counter as the start state and the final state
-          if (token.length == 1) {
-            counter += 2
-            return fromCharacter(token.charAt(0), prevState)
-          }
-          throw new IllegalArgumentException("Invalid token: " + token)
-        }
-      }
-    }
-
-    createNFA()
+    // create an AST from the string
+    val ast = Ast.fromPrenex(str)
+    // create an NFA from the AST
+    fromAst(ast)
   }
 
   /**

@@ -28,7 +28,7 @@ object DfaAux {
 
     // create a queue and add the start state to it and epsilon transitions
     val queue = new mutable.Queue[Set[Int]]()
-    queue.enqueue(Set(nfaStart) ++ nfa.next(nfaStart, 'ε'))
+    queue.enqueue(nfa.getEpsilonClosure(nfaStart))
 
     // init
     val dfaStart = queue.head
@@ -39,12 +39,14 @@ object DfaAux {
     // as long as the queue is not empty, create a new DFA and add the new set of states to the queue
     var visited = Set[Set[Int]]()
     visited += dfaStart
-
+    nfa.epsilonClosureCache = nfa.preCalculateEpsilonCLosure()
     while (queue.nonEmpty) {
       val statesSet = queue.dequeue()
       allStates += statesSet
 
-      val newTransitions = alphabet.map(c => (statesSet, c) -> statesSet.flatMap(s => nfa.next(s, c))).toMap
+      var newTransitions = alphabet.map(c => (statesSet, c) -> statesSet.flatMap(s => nfa.next(s, c))).toMap
+      // add epsilon closure to the transitions
+      newTransitions = newTransitions.map(t => t._1 -> t._2.flatMap(s => nfa.epsilonClosureCache.getOrElse(s, Set(s))))
       // filter out the transitions that point to the sink state
       val filteredTransitions = newTransitions.filter(_._2.nonEmpty)
       // add the new transitions to the queue if they aren't in the visited set
