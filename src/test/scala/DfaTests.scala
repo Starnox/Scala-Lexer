@@ -72,6 +72,19 @@ class DfaTests extends munit.FunSuite {
     assert(dfa.accepts("U"))
   }
 
+  test("all (6p)") {
+    val str = "([0-9]*|b+)c?d(da)(\' \'|[A-Z]|\'a\')?"
+    val s = "CONCAT CONCAT CONCAT UNION STAR UNION UNION UNION UNION UNION UNION UNION UNION UNION 0 1 2 3 4 5 6 7 8 9 CONCAT b STAR b UNION c eps d CONCAT CONCAT d a UNION UNION ' ' UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION A B C D E F G H I J K L M N O P R S T U V W X Y Z a eps"
+    val dfa = Dfa.fromPrenex(s)
+    assert(dfa.accepts("bdda"))
+    assert(dfa.accepts("28121274849cdda"))
+    assert(dfa.accepts("dda"))
+    assert(dfa.accepts("bbbbbbcddaa"))
+    assert(dfa.accepts("bddaT"))
+    assert(dfa.accepts("07cdda "))
+    assert(!dfa.accepts("07bcdda "))
+  }
+
   test("Test complex 2 (10p)") {
     val s = "STAR CONCAT a b"
     assert(Dfa.fromPrenex(s).accepts("ababababab"))

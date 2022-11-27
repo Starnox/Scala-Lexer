@@ -132,16 +132,16 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
 
 object Nfa {
 
-  def fromAst(ast: Ast[Char,String]): Nfa[Int] = {
+  def fromAst(ast: Ast[Char,Char]): Nfa[Int] = {
     // create a new NFA from an AST
     var counter = 0
 
     // go recursively through the AST and create the transitions
-    def go(ast: Ast[Char,String]): Nfa[Int] = {
+    def go(ast: Ast[Char,Char]): Nfa[Int] = {
       if (ast.isOperator) {
         ast.getValue match {
           // Concatenation
-          case Right("CONCAT") => {
+          case Right('.') => {
             val first = go(ast.getFirst)
             val second = go(ast.getSecond)
             var transitions = first.transitions ++ second.transitions
@@ -150,7 +150,7 @@ object Nfa {
             new Nfa(first.start, finalStates, transitions)
           }
           // Union
-          case Right("UNION") => {
+          case Right('|') => {
             val left = go(ast.getFirst)
             val right = go(ast.getSecond)
             counter += 2
@@ -166,7 +166,7 @@ object Nfa {
             new Nfa(newStart, Set(newFinal), transitions)
           }
           // Kleene star
-          case Right("STAR") => {
+          case Right('*') => {
             val nfa = go(ast.getFirst)
             counter += 2
             val newStart = counter - 2
