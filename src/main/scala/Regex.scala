@@ -6,7 +6,7 @@ object Regex {
     -> Convert escaped characters
   */
   def preprocess(s:List[Char]): List[Either[Char,Char]] = {
-    // go through the list and convert the characters to either a character or an operator
+    // handle epsilon case
     var i = 0
     var newS = s
     while (i < newS.length - 2) {
@@ -25,6 +25,26 @@ object Regex {
     }
     newS = newS.filter(_ != '\'')
 
+    // convert special inputs like [0-9] to their correct form
+    i = 0
+    while (i < newS.length - 1) {
+      if (newS(i) == '[') {
+        val firstParam = newS(i + 1)
+        val secondParam = newS(i + 3)
+        val range = firstParam.to(secondParam).toList
+        // append between each characters of the range the character '|'
+        val newRange = range.foldLeft(List[Char]())((acc, c) => acc :+ c :+ '|')
+        // remove the last '|'
+        val finalRange = newRange.dropRight(1)
+        // surround the range with parentheses
+        val finalRangeWithParentheses = '(' +: finalRange :+ ')'
+        // replace the original range with the new range
+        newS = newS.patch(i, finalRangeWithParentheses, 5)
+        i += finalRangeWithParentheses.length - 1
+      }
+      i += 1
+    }
+
     var res = (for (c <- newS) yield{
       c match {
         case '*' => Right('*')
@@ -36,13 +56,13 @@ object Regex {
         case ')' => Right(')')
         case '[' => Right('[')
         case ']' => Right(']')
-        case ' ' => Right('@')
         // check for epsilon which is represented by 3 characters "eps"
 
 
         case x => Left(x)
       }
     })
+
     // add a Right('.') between every two Left characters, between a closing parenthesis and a Left character
     // to the right of a unary operator
     i = 0
@@ -62,7 +82,7 @@ object Regex {
       else if(res(i).isRight && res(i) == Right(')') && res(i+1).isRight && res(i+1) == Right('(')) {
         res = res.patch(i + 1, List(Right('.')), 0)
       }
-      else if((res(i) == Right('?') || res(i) == Right('+')) && res(i + 1).isLeft) {
+      else if((res(i) == Right('?') || res(i) == Right('+')) && (res(i + 1).isLeft || res(i + 1) == Right('('))) {
         res = res.patch(i + 1, List(Right('.')), 0)
       }
 

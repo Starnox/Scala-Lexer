@@ -161,7 +161,6 @@ class RegexParseTests extends munit.FunSuite {
   test("concat star (3p)") {
     val str = "ab*cd*"
     val s = Regex.toPrenex(str)
-    println(s)
     assert(Regex.toPrenex(str) == "CONCAT a CONCAT STAR b CONCAT c STAR d")
 
     assert(Dfa.fromPrenex(s).accepts("ac"))
@@ -211,7 +210,6 @@ class RegexParseTests extends munit.FunSuite {
   test("all basic 3 (6p)") {
     val str = "a*|b|c"
     val s = Regex.toPrenex(str)
-    println(s)
     //assert(Regex.toPrenex(str) == "UNION UNION STAR a b c")
 
     assert(Dfa.fromPrenex(s).accepts(""))
@@ -282,6 +280,7 @@ class RegexParseTests extends munit.FunSuite {
     //assert(Regex.toPrenex(str) == "CONCAT \n CONCAT a CONCAT \t b")
     val s = Regex.toPrenex(str)
     assert(Dfa.fromPrenex(s).accepts("\na\tb"))
+    assert(!Dfa.fromPrenex(s).accepts("\na\tb "))
   }
 
   test("0 to 9 (2p)") {
@@ -332,7 +331,6 @@ class RegexParseTests extends munit.FunSuite {
   test("q and p (1p)") {
     val str = "0?1+"
     val s = Regex.toPrenex(str)
-    println(s)
     //assert(Regex.toPrenex(str) == "CONCAT UNION 0 eps CONCAT 1 STAR 1")
 
     assert(Dfa.fromPrenex(s).accepts("11111"))

@@ -35,8 +35,10 @@ class Ast[A, B](astValue: Either[A, B], astFirst: Ast[A, B], astSecond: Ast[A, B
     if (isOperator) {
       astValue match {
         case Right(op) => {
-          val astFirstString = if (astFirst == null) "" else astFirst.toString
-          val astSecondString = if (astSecond == null) "" else astSecond.toString
+          var astFirstString = if (astFirst == null) "" else astFirst.toString
+          astFirstString = if (astFirstString == " ") "' '" else astFirstString
+          var astSecondString = if (astSecond == null) "" else astSecond.toString
+          astSecondString = if (astSecondString == " ") "' '" else astSecondString
           val operatorExtended = op match {
             case '.' => "CONCAT"
             case '|' => "UNION"
