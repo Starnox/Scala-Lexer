@@ -13,7 +13,7 @@ function run_python() {
 	score=$(echo $result_op | bc)
 }
 
-MAX_SCORE=78
+MAX_SCORE=100
 
 # TODO find a way to check which language the student implemented the assignment in (one way to do this is to have 2 different vmck assignments)
 run_scala

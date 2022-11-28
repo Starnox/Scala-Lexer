@@ -31,7 +31,7 @@ object Regex {
       if (newS(i) == '[') {
         val firstParam = newS(i + 1)
         val secondParam = newS(i + 3)
-        val range = firstParam.to(secondParam).toList
+        val range = firstParam.to(secondParam).toList // get the range
         // append between each characters of the range the character '|'
         val newRange = range.foldLeft(List[Char]())((acc, c) => acc :+ c :+ '|')
         // remove the last '|'
@@ -45,7 +45,8 @@ object Regex {
       i += 1
     }
 
-    var res = (for (c <- newS) yield{
+    // classify the input as either operator or value
+    var res = for (c <- newS) yield{
       c match {
         case '*' => Right('*')
         case '+' => Right('+')
@@ -56,12 +57,9 @@ object Regex {
         case ')' => Right(')')
         case '[' => Right('[')
         case ']' => Right(']')
-        // check for epsilon which is represented by 3 characters "eps"
-
-
         case x => Left(x)
       }
-    })
+    }
 
     // add a Right('.') between every two Left characters, between a closing parenthesis and a Left character
     // to the right of a unary operator
@@ -89,9 +87,13 @@ object Regex {
       i += 1
     }
     res
-    // TODO convert special inputs like [0-9] to their correct form
   }
 
+  /**
+   * The function gets the priority of an operator
+   * @param op the operator
+   * @return the priority of the operator
+   */
   def getPriorityOfOperator(op:Char): Int = {
     op match {
       case '*' => 3
@@ -99,16 +101,18 @@ object Regex {
       case '?' => 3
       case '.' => 2
       case '|' => 1
-      case '(' => 0
-      case ')' => 0
+      case _ => 0
     }
   }
 
-  // This function should construct a prenex expression out of a normal one.
+  /**
+   * This function should:
+   * -> Convert the infix notation to postfix notation
+   * @param str the input string
+   * @return the postfix notation of the input string
+   */
   def toPrenex(str: String): String = {
-    // convert infix to ast
     val ast = Ast.fromInfix(str)
-    // convert ast to prenex
     ast.toString
   }
 }
