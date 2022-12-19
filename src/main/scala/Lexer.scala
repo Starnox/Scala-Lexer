@@ -66,9 +66,6 @@ object Lexer {
 
     // convert to dfa but keep the state mapping
     val (dfa, newStateToToken) = Dfa.fromDfaAuxWithProperties(dfaAux, stateToToken)
-    // filter out states that have no tokens
-    println(dfa)
-    println(newStateToToken)
 
     new Lexer(spec, dfa, newStateToToken, priorities)
   }

@@ -10,6 +10,14 @@ class DfaAux[A] (val start: Set[A], val finalStates: Set[Set[A]], val transition
     transitions.keys.map(_._1).toSet ++ transitions.values.toSet ++ finalStates ++ Set(start)
   }
 
+  def reverse(): DfaAux[A] = {
+    var reversedTransitions = Map[(Set[A], Char), Set[A]]()
+    for (t <- transitions) {
+      reversedTransitions = reversedTransitions + ((t._2, t._1._2) -> (reversedTransitions.getOrElse((t._2, t._1._2), Set[A]()) ++ t._1._1))
+    }
+    new DfaAux(finalStates.flatten, Set(start), reversedTransitions)
+  }
+
   override def toString: String = {
     "DfaAux(" + start + ", " + finalStates + ", " + transitions + ")"
   }
@@ -72,5 +80,9 @@ object DfaAux {
   def fromPrenex(str: String): DfaAux[Int] = {
     val nfa = Nfa.fromPrenex(str)
     fromNfa(nfa)
+  }
+
+  def apply [A](dfa: Dfa[A]) : DfaAux[A] = {
+    new DfaAux(Set(dfa.start), Set(dfa.finalStates), dfa.transitions.map(t => (Set(t._1._1), t._1._2) -> Set(t._2)))
   }
 }

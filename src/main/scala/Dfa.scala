@@ -1,3 +1,5 @@
+import Dfa.fromDfaAux
+
 class Dfa[A] (val start: A, val sinkState:A, val finalStates: Set[A], val transitions: Map[(A, Char), A]) {
 
   /**
@@ -61,7 +63,21 @@ object Dfa {
    * @return a DFA
    */
   def fromPrenex(str: String): Dfa[Int] = {
-    fromDfaAux(DfaAux.fromPrenex(str))
+    val dfaAux = DfaAux.fromPrenex(str)
+    val dfa = fromDfaAux(dfaAux)
+    val minDfa = convertToMinDfa(dfa)
+
+    // some tests TODO remove
+    val dfaAuxOriginal = DfaAux(dfa)
+    val dfaAuxReversed = dfaAuxOriginal.reverse()
+    println(dfaAuxOriginal)
+    println(dfaAuxReversed)
+    println(fromDfaAux(dfaAuxReversed))
+    //println(fromDfaAux(reversedDfa))
+
+//    println(minDfa)
+//    println(dfa)
+    dfa
   }
 
   def fromDfaAux(dfaAux: DfaAux[Int]): Dfa[Int] = {
@@ -82,6 +98,12 @@ object Dfa {
           -1,
           dfaAux.finalStates.map(s => stateMap(s)),
           dfaAux.transitions.map{case ((s, c), s2) => (stateMap(s), c) -> stateMap(s2)}), newProperties)
+  }
+
+  def convertToMinDfa(dfa: Dfa[Int]) : Dfa[Int] = {
+    // Brzozowski minimisation
+    val dfaAux = DfaAux(dfa)
+    fromDfaAux(DfaAux(fromDfaAux(dfaAux.reverse())).reverse())
   }
 
 }

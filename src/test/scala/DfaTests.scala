@@ -118,6 +118,18 @@ class DfaTests extends munit.FunSuite {
     assert(!Dfa.fromPrenex(s).accepts("aaabbbbbab"))
   }
 
+  test("Test complex 6 debug (10p)") {
+    val s = "UNION STAR a STAR b"
+    val dfa = Dfa.fromPrenex(s)
+    assert(dfa.accepts(""))
+    assert(dfa.accepts("a"))
+    assert(dfa.accepts("b"))
+    assert(!dfa.accepts("ab"))
+    assert(dfa.accepts("aaaaaaa"))
+    assert(dfa.accepts("bbbbb"))
+    assert(!dfa.accepts("aaabbbbbab"))
+  }
+
   test("Test complex 6 (10p)") {
     val s = "UNION STAR a STAR b"
     assert(Dfa.fromPrenex(s).accepts(""))

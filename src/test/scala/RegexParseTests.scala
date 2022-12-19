@@ -119,6 +119,17 @@ class RegexParseTests extends munit.FunSuite {
     assert(!Dfa.fromPrenex(s).accepts("abc"))
   }
 
+  test("union concat with min dfa") {
+    val str = "ab|c"
+    //assert(Regex.toPrenex(str) == "UNION CONCAT a b c")
+    val s = Regex.toPrenex(str)
+    val dfa = Dfa.convertToMinDfa(Dfa.fromPrenex(s))
+    assert(dfa.accepts("c"))
+    assert(dfa.accepts("ab"))
+    assert(!dfa.accepts("ac"))
+    assert(!dfa.accepts("abc"))
+  }
+
   test("union concat 2 (2p)") {
     val str = "a|bc"
     //assert(Regex.toPrenex(str) == "UNION a CONCAT b c")
