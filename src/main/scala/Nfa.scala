@@ -50,6 +50,7 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
       }
     }
     // filter out the states that only have epsilon transitions
+    // Very important optimization
     val alphabet = getAlphabet - 'ε'
     visited.filter(s => {
       alphabet.exists(c => transitions.contains((s, c))) || finalStates.contains(s)
@@ -92,7 +93,7 @@ class Nfa[A](val start: A, val finalStates: Set[A], val transitions: Map[(A, Cha
    * @return a set of all states
    */
   def getStates : Set[A] = {
-    transitions.keys.map(_._1).toSet
+    transitions.keys.map(_._1).toSet ++ finalStates
   }
 
   /**
@@ -175,6 +176,30 @@ object Nfa {
             var transitions = nfa.transitions
             transitions += ((newStart, 'ε') -> Set(nfa.start, newFinal))
             transitions += ((nfa.getLastState, 'ε') -> Set(newFinal, nfa.start))
+
+            new Nfa(newStart, Set(newFinal), transitions)
+          }
+          case Right('+') => {
+            val nfa = go(ast.getFirst)
+            counter += 2
+            val newStart = counter - 2
+            val newFinal = counter - 1
+
+            var transitions = nfa.transitions
+            transitions += ((newStart, 'ε') -> Set(nfa.start))
+            transitions += ((nfa.getLastState, 'ε') -> Set(newFinal, nfa.start))
+
+            new Nfa(newStart, Set(newFinal), transitions)
+          }
+          case Right('?') => {
+            val nfa = go(ast.getFirst)
+            counter += 2
+            val newStart = counter - 2
+            val newFinal = counter - 1
+
+            var transitions = nfa.transitions
+            transitions += ((newStart, 'ε') -> Set(nfa.start, newFinal))
+            transitions += ((nfa.getLastState, 'ε') -> Set(newFinal))
 
             new Nfa(newStart, Set(newFinal), transitions)
           }

@@ -5,6 +5,21 @@ class RegexParseTests extends munit.FunSuite {
     val expected = List(Left('a'), Right('*'))
     assertEquals(Regex.preprocess(str.toList), expected)
   }
+  test ("space") {
+    val str = "(101' ')+"
+    val nfa = Nfa.fromAst(Ast.fromInfix(str))
+    assert(nfa.accepts("101 101 "))
+  }
+
+  test ("simple test") {
+    val str = "a|e"
+    val nfa = Nfa.fromAst(Ast.fromInfix(str))
+    println(nfa)
+    assert(nfa.accepts("a"))
+    assert(nfa.accepts("e"))
+    assert(!nfa.accepts("b"))
+  }
+
   test ("regex preprocess 2") {
     val str = "a|b"
     val expected = List(Left('a'), Right('|'), Left('b'))
@@ -259,6 +274,15 @@ class RegexParseTests extends munit.FunSuite {
     assert(Dfa.fromPrenex(s).accepts("aAaAaAbcddddbcecffffaAaA"))
   }
 
+  test("all basic 7 with ast transform(6p)") {
+    val str = "a(a|A)*((bcd*|ecf*)|aA)*"
+    //assert(Regex.toPrenex(str) == "CONCAT CONCAT a STAR UNION a A STAR UNION CONCAT b CONCAT c UNION STAR d CONCAT d CONCAT c STAR b CONCAT a A")
+    val nfa = Nfa.fromAst(Ast.fromInfix(str))
+    assert(nfa.accepts("a"))
+    assert(nfa.accepts("aAaAaaAAAAAAa"))
+    assert(nfa.accepts("aAaAaAbcddddbcecffffaAaA"))
+  }
+
   // 70%
   test("eps (1p)") {
     //assert(Regex.toPrenex("eps") == "eps")
@@ -373,12 +397,26 @@ class RegexParseTests extends munit.FunSuite {
     val str = "([0-9]*|b+)c?d(da)(\' \'|[A-Z]|\'a\')?"
     //assert(Regex.toPrenex(str) == "CONCAT CONCAT CONCAT UNION STAR UNION UNION UNION UNION UNION UNION UNION UNION UNION 0 1 2 3 4 5 6 7 8 9 CONCAT b STAR b UNION c eps d CONCAT CONCAT d a UNION UNION @ UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION A B C D E F G H I J K L M N O P R S T U V W X Y Z a eps")
     val s = Regex.toPrenex(str)
-    assert(Dfa.fromPrenex(s).accepts("bdda "))
-    assert(Dfa.fromPrenex(s).accepts("28121274849cdda"))
-    assert(Dfa.fromPrenex(s).accepts("dda"))
-    assert(Dfa.fromPrenex(s).accepts("bbbbbbcddaa"))
-    assert(Dfa.fromPrenex(s).accepts("bddaT"))
-    assert(Dfa.fromPrenex(s).accepts("07cdda "))
-    assert(!Dfa.fromPrenex(s).accepts("07bcdda "))
+    val dfa = Dfa.fromPrenex(s)
+    assert(dfa.accepts("bdda "))
+    assert(dfa.accepts("28121274849cdda"))
+    assert(dfa.accepts("dda"))
+    assert(dfa.accepts("bbbbbbcddaa"))
+    assert(dfa.accepts("bddaT"))
+    assert(dfa.accepts("07cdda "))
+    assert(!dfa.accepts("07bcdda "))
+  }
+
+  test("all (6p) with ast transform") {
+    val str = "([0-9]*|b+)c?d(da)(\' \'|[A-Z]|\'a\')?"
+    //assert(Regex.toPrenex(str) == "CONCAT CONCAT CONCAT UNION STAR UNION UNION UNION UNION UNION UNION UNION UNION UNION 0 1 2 3 4 5 6 7 8 9 CONCAT b STAR b UNION c eps d CONCAT CONCAT d a UNION UNION @ UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION UNION A B C D E F G H I J K L M N O P R S T U V W X Y Z a eps")
+    val dfa = Dfa.fromDfaAux(DfaAux.fromNfa(Nfa.fromAst(Ast.fromInfix(str))))
+    assert(dfa.accepts("bdda "))
+    assert(dfa.accepts("28121274849cdda"))
+    assert(dfa.accepts("dda"))
+    assert(dfa.accepts("bbbbbbcddaa"))
+    assert(dfa.accepts("bddaT"))
+    assert(dfa.accepts("07cdda "))
+    assert(!dfa.accepts("07bcdda "))
   }
 }

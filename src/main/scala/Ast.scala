@@ -66,7 +66,7 @@ class Ast[A, B](astValue: Either[A, B], astFirst: Ast[A, B], astSecond: Ast[A, B
     }
     else {
       astValue match {
-        case Left(c) => c.toString
+        case Left(c) => if (c.toString == " ") "' '" else c.toString
         case _ => throw new Exception("Should not happen")
       }
     }
