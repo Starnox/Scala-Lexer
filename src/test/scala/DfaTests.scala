@@ -5,6 +5,16 @@ class DfaTests extends munit.FunSuite {
     assert(!Dfa.fromPrenex("eps").accepts(" "))
   }
 
+  test ("New line") {
+    val s = "\n"
+    val nfa = Nfa.fromAst(Ast.fromInfix(s))
+    val dfa = Dfa.fromDfaAux(DfaAux.fromNfa(nfa))
+    assert(dfa.accepts("\n"))
+    assert(!dfa.accepts(" "))
+    assert(!dfa.accepts("\\"))
+
+  }
+
   test("Test void (1p)") {
     val s = "void"
     assert(!Dfa.fromPrenex(s).accepts(""))

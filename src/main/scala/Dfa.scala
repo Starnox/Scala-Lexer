@@ -63,21 +63,7 @@ object Dfa {
    * @return a DFA
    */
   def fromPrenex(str: String): Dfa[Int] = {
-    val dfaAux = DfaAux.fromPrenex(str)
-    val dfa = fromDfaAux(dfaAux)
-    val minDfa = convertToMinDfa(dfa)
-
-    // some tests TODO remove
-    val dfaAuxOriginal = DfaAux(dfa)
-    val dfaAuxReversed = dfaAuxOriginal.reverse()
-    println(dfaAuxOriginal)
-    println(dfaAuxReversed)
-    println(fromDfaAux(dfaAuxReversed))
-    //println(fromDfaAux(reversedDfa))
-
-//    println(minDfa)
-//    println(dfa)
-    dfa
+    fromDfaAux(DfaAux.fromPrenex(str))
   }
 
   def fromDfaAux(dfaAux: DfaAux[Int]): Dfa[Int] = {

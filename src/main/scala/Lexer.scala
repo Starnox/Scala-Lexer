@@ -2,13 +2,49 @@ import Lexer._
 
 class Lexer (spec: String, dfa: Dfa[Int], stateMap: Map[Int, Set[String]], priorities: Map[String, Int]) {
 
+  def getTokenHeighestPriority(tokens: Set[String]): String = {
+    tokens.maxBy(priorities(_))
+  }
   /*
     This is the main function of the lexer, it splits the given word into a list of lexems
     in the format (LEXEM, TOKEN)
   */
   def lex(word: String): Either[String,List[(String,String)]] = {
-    // return generic error if the word is empty
-    Left("Empty word")
+    // go throught the word and split it into lexems
+    // as it goes through the word it also remembers the last lexems it found
+    // if it finds a lexem that is not in the dfa it returns an error
+    var result = List[(String,String)]()
+
+    def getNextToken(str: String, start: Int): Either[String, (String, String, Int)] = {
+      var lastTokenSet = Set[String]()
+      var state = dfa.start
+      var i = start
+      var end = start
+      while (i < str.length && dfa.next(state, str(i)) != -1) {
+        state = dfa.next(state, str(i))
+        if (dfa.isFinal(state)) {
+          lastTokenSet = stateMap(state)
+          end = i + 1
+        }
+        i += 1
+      }
+      if (lastTokenSet == Set()) {
+        Left("Error: " + str + " is not a valid lexem")
+      } else {
+        Right(str.substring(start, end), getTokenHeighestPriority(lastTokenSet), end)
+      }
+    }
+    var i = 0
+    while (i < word.length) {
+      getNextToken(word, i) match {
+        case Left(error) => return Left(error)
+        case Right((lexem, token, next)) => {
+          result = (lexem, token) :: result
+          i = next
+        }
+      }
+    }
+    Right(result.reverse)
   }
 }
 
@@ -31,11 +67,10 @@ object Lexer {
       val lineSplit = newLine.split(":").map(_.trim)
 
       // set the priority of the lexem
-      priorities += (lineSplit(1) -> currentPriority)
+      priorities += (lineSplit(0) -> currentPriority)
 
       //val nfa = Nfa.fromPrenex(Regex.toPrenex(lineSplit(1)))
       var nfa = Nfa.fromAst(Ast.fromInfix(lineSplit(1)))
-
 
       // get the maximum state of the nfa
       if (maximumState != -1)
@@ -45,7 +80,7 @@ object Lexer {
       maximumState = nfa.getLastState + 1
       // create mapping between the final states and the lexem
       for (state <- nfa.finalStates)
-        stateToToken += (state -> lineSplit(1))
+        stateToToken += (state -> lineSplit(0))
 
       // add the nfa to the list
       nfaList = nfaList :+ nfa
@@ -66,7 +101,6 @@ object Lexer {
 
     // convert to dfa but keep the state mapping
     val (dfa, newStateToToken) = Dfa.fromDfaAuxWithProperties(dfaAux, stateToToken)
-
     new Lexer(spec, dfa, newStateToToken, priorities)
   }
 }
