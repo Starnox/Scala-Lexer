@@ -1,19 +1,21 @@
 import Lexer._
 
-class Lexer (spec: String, dfa: Dfa[Int], stateMap: Map[Int, Set[String]], priorities: Map[String, Int]) {
+class Lexer (spec: String, dfa: Dfa[Int], stateMap: Map[Int, Set[String]], priorities: Map[String, Int]
+            ,skipWhiteSpaces: Boolean = true, skipNewLines: Boolean = true) {
 
   def getTokenHeighestPriority(tokens: Set[String]): String = {
-    tokens.maxBy(priorities(_))
+    tokens.minBy(priorities(_))
   }
   /*
     This is the main function of the lexer, it splits the given word into a list of lexems
     in the format (LEXEM, TOKEN)
   */
   def lex(word: String): Either[String,List[(String,String)]] = {
-    // go throught the word and split it into lexems
+    // go through the word and split it into lexems
     // as it goes through the word it also remembers the last lexems it found
     // if it finds a lexem that is not in the dfa it returns an error
     var result = List[(String,String)]()
+    var currentLine = 0
 
     def getNextToken(str: String, start: Int): Either[String, (String, String, Int)] = {
       var lastTokenSet = Set[String]()
@@ -21,6 +23,9 @@ class Lexer (spec: String, dfa: Dfa[Int], stateMap: Map[Int, Set[String]], prior
       var i = start
       var end = start
       while (i < str.length && dfa.next(state, str(i)) != -1) {
+        if (str(i) == '\n')
+          currentLine += 1
+
         state = dfa.next(state, str(i))
         if (dfa.isFinal(state)) {
           lastTokenSet = stateMap(state)
@@ -28,22 +33,36 @@ class Lexer (spec: String, dfa: Dfa[Int], stateMap: Map[Int, Set[String]], prior
         }
         i += 1
       }
+      // if we reached the sink state without going through a final state
       if (lastTokenSet == Set()) {
-        Left("Error: " + str + " is not a valid lexem")
+        if (i != str.length)
+          Left("No viable alternative at character " + i + ", line " + currentLine)
+        else
+          Left("No viable alternative at character EOF, line " + currentLine)
       } else {
         Right(str.substring(start, end), getTokenHeighestPriority(lastTokenSet), end)
       }
     }
     var i = 0
     while (i < word.length) {
-      getNextToken(word, i) match {
-        case Left(error) => return Left(error)
-        case Right((lexem, token, next)) => {
-          result = (lexem, token) :: result
-          i = next
+      while (i != word.length &&
+        ((skipWhiteSpaces && word(i) == ' ') || (skipNewLines && word(i) == '\n') || word(i) == '\t')) {
+        i += 1
+      }
+      if (i != word.length) {
+        getNextToken(word, i) match {
+          case Left(error) => return Left(error)
+          case Right((lexem, token, next)) => {
+            result = (lexem, token) :: result
+            i = next
+          }
         }
       }
     }
+    if (result.isEmpty)
+      return Left("No viable alternative at character EOF, line " + currentLine)
+
+
     Right(result.reverse)
   }
 }
@@ -59,6 +78,8 @@ object Lexer {
     var stateToToken = Map[Int,String]()
     var priorities = Map[String,Int]()
     var currentPriority = 0
+    var skipNewLines = true
+    var skipWhiteSpaces = true
 
     for (line <- lines) {
       // remove the ';' from the end of the line
@@ -70,7 +91,19 @@ object Lexer {
       priorities += (lineSplit(0) -> currentPriority)
 
       //val nfa = Nfa.fromPrenex(Regex.toPrenex(lineSplit(1)))
-      var nfa = Nfa.fromAst(Ast.fromInfix(lineSplit(1)))
+      val regex = lineSplit(1)
+      var newRegex = ""
+      if (regex == "\'\\n\'") {
+        newRegex = '\n'.toString
+        skipNewLines = false
+      }
+      else
+        newRegex = regex
+
+      if (regex == "\' \'")
+        skipWhiteSpaces = false;
+
+      var nfa = Nfa.fromAst(Ast.fromInfix(newRegex))
 
       // get the maximum state of the nfa
       if (maximumState != -1)
@@ -101,6 +134,6 @@ object Lexer {
 
     // convert to dfa but keep the state mapping
     val (dfa, newStateToToken) = Dfa.fromDfaAuxWithProperties(dfaAux, stateToToken)
-    new Lexer(spec, dfa, newStateToToken, priorities)
+    new Lexer(spec, dfa, newStateToToken, priorities, skipWhiteSpaces, skipNewLines)
   }
 }

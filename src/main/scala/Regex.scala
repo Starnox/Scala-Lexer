@@ -6,6 +6,12 @@ object Regex {
     -> Convert escaped characters
   */
   def preprocess(s:List[Char]): List[Either[Char,Char]] = {
+    // handle special cases
+    if (s.length == 1) {
+      return List(Left(s.head))
+    }
+
+
     // handle epsilon case
     var i = 0
     var newS = s

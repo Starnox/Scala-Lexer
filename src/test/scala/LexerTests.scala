@@ -15,6 +15,29 @@ class LexerTests extends munit.FunSuite{
     assert(Lexer(spec).lex("abcdefdefbca") == Right(List(("a", "A"), ("bc", "BC"), ("def", "DEF"), ("def", "DEF"), ("bc", "BC"), ("a", "A"))))
   }
 
+  test("Test lexer: + and * (2p)"){
+    val spec =
+      """PLUS: +;
+        #STAR: *;
+        #""".stripMargin('#')
+
+    assert(Lexer(spec).lex("+") == Right(List(("+", "PLUS"))))
+    assert(Lexer(spec).lex("++") == Right(List(("+", "PLUS"), ("+", "PLUS"))))
+    assert(Lexer(spec).lex("*") == Right(List(("*", "STAR"))))
+    assert(Lexer(spec).lex("**") == Right(List(("*", "STAR"), ("*", "STAR"))))
+    assert(Lexer(spec).lex("++*") == Right(List(("+", "PLUS"), ("+", "PLUS"), ("*", "STAR"))))
+  }
+//  test ("begin lexer ") {
+//    val spec =
+//      """BEGIN: begin;
+//        #VAR: [a-z]+;
+//        #NUM: [0-9]+;
+//        #EQUALS: =;
+//        #END: end;
+//        #""".stripMargin('#')
+//    assert(Lexer(spec).lex("begin\na = 1\n") == Right(List(("begin", "BEGIN"))))
+//  }
+
   test("Test lexer: simple union (2p)"){
     val spec =
       """AorB: a|b;
@@ -96,10 +119,10 @@ class LexerTests extends munit.FunSuite{
         #PATTERN5: 1*01;
         #""".stripMargin('#')
 
-//    assert(Lexer(spec).lex("1 0") == Right(List(("1 0", "PATTERN1"))))
-//    assert(Lexer(spec).lex("101010") == Right(List(("101010", "PATTERN2"))))
-//    assert(Lexer(spec).lex("101010 1 0 1 0") == Right(List(("101010", "PATTERN2"), (" ", "SPACE"), ("1 0", "PATTERN1"), (" ", "SPACE"), ("1 0", "PATTERN1"))))
-//    assert(Lexer(spec).lex("1 0 001 1 010 ") == Right(List(("1 0", "PATTERN1"), (" 001 ", "PATTERN3"), ("1 0", "PATTERN1"), ("10", "PATTERN2"), (" ", "SPACE"))))
+    assert(Lexer(spec).lex("1 0") == Right(List(("1 0", "PATTERN1"))))
+    assert(Lexer(spec).lex("101010") == Right(List(("101010", "PATTERN2"))))
+    assert(Lexer(spec).lex("101010 1 0 1 0") == Right(List(("101010", "PATTERN2"), (" ", "SPACE"), ("1 0", "PATTERN1"), (" ", "SPACE"), ("1 0", "PATTERN1"))))
+    assert(Lexer(spec).lex("1 0 001 1 010 ") == Right(List(("1 0", "PATTERN1"), (" 001 ", "PATTERN3"), ("1 0", "PATTERN1"), ("10", "PATTERN2"), (" ", "SPACE"))))
     assert(Lexer(spec).lex("1 0 \n  001 1 0") == Right(List(("1 0", "PATTERN1"), (" ", "SPACE"), ("\n", "NEWLINE"), (" ", "SPACE"), (" 001 ", "PATTERN3"), ("1 0", "PATTERN1"))))
     assert(Lexer(spec).lex("101 101 1 01010  ") == Right(List(("101 101 ", "PATTERN4"), ("1 0", "PATTERN1"), ("1010", "PATTERN2"), (" ", "SPACE"), (" ", "SPACE"))))
     assert(Lexer(spec).lex("101 1010\n  001   001  101010 ") == Right(List(("101 ", "PATTERN4"), ("1010", "PATTERN2"), ("\n", "NEWLINE"), (" ", "SPACE"), (" 001 ", "PATTERN3"), (" ", "SPACE"), (" 001 ", "PATTERN3"), (" ", "SPACE"), ("101010", "PATTERN2"), (" ", "SPACE"))))
@@ -140,6 +163,8 @@ class LexerTests extends munit.FunSuite{
         #PATTERN5: (((c|d)|f*)*|((f|a)+|(b|c)+))+;
         #""".stripMargin('#')
 
+    //println(Lexer(spec).lex("babbbaadcabaaabbabdcbdcbdcbbbefdefdefdeeefdeefdeefddabbfcdadbacdcfcdcbcfddba\n"))
+    assert(Lexer(spec).lex("e") == Right(List(("e", "PATTERN1"))))
     assert(Lexer(spec).lex("babbbaadcabaaabbabdcbdcbdcbbbefdefdefdeeefdeefdeefddabbfcdadbacdcfcdcbcfddba\n") == Right(List(("babbbaadcabaaabbabdcbdcbdcbbb", "PATTERN2"), ("e", "PATTERN1"), ("fd", "PATTERN5"), ("e", "PATTERN1"), ("fd", "PATTERN5"), ("e", "PATTERN1"), ("fd", "PATTERN5"), ("eeefdeefdeefd", "PATTERN1"), ("dabbfcdadbacdcfcdcbcfddba", "PATTERN5"), ("\n", "NEWLINE"))))
     assert(Lexer(spec).lex("edaffffaaedaffedaffaedaff acccdbdbdbadfdbcfddccfdcf\ndbdbdbddbdcdcdcdcdcdcdcdc\nedafdaedafedafedafdaaedaf ddedafedafedafaafaedafedaf") == Right(List(("edaffffaaedaffedaffaedaff", "PATTERN4"), (" ", "SPACE"), ("acccdbdbdbadfdbcfddccfdcf", "PATTERN5"), ("\n", "NEWLINE"), ("dbdbdbddbdcdcdcdcdcdcdcdc", "PATTERN2"), ("\n", "NEWLINE"), ("edafdaedafedafedafdaaedaf", "PATTERN4"), (" ", "SPACE"), ("ddedafedafedafaafaedafedaf", "PATTERN4"))))
     assert(Lexer(spec).lex("eabaacaccaccaaccccccccaac bdcbdcbdcaadcdcbbdcabadcdc eecacaaaccaaacccacacaacca\n") == Right(List(("eabaacaccaccaaccccccccaac", "PATTERN1"), (" ", "SPACE"), ("bdcbdcbdcaadcdcbbdcabadcdc", "PATTERN2"), (" ", "SPACE"), ("eecacaaaccaaacccacacaacca", "PATTERN1"), ("\n", "NEWLINE"))))
@@ -206,7 +231,6 @@ class LexerTests extends munit.FunSuite{
     }
 
     val results = words.map(word => transform(Lexer(spec).lex(word)))
-
     assert(results(0) == List("BEGIN", "VARIABLE", "ASSIGN", "NUMBER", "END"))
     assert(results(1) == List("BEGIN", "VARIABLE", "ASSIGN", "NUMBER", "VARIABLE", "ASSIGN", "NUMBER", "VARIABLE", "ASSIGN", "VARIABLE", "VARIABLE", "ASSIGN", "VARIABLE", "VARIABLE", "ASSIGN", "VARIABLE", "END"))
     assert(results(2) == List("BEGIN", "VARIABLE", "ASSIGN", "NUMBER", "VARIABLE", "ASSIGN", "NUMBER", "IF", "OPEN_PARANTHESIS", "VARIABLE", "EQUAL", "NUMBER", "CLOSE_PARANTHESIS", "THEN", "VARIABLE", "ASSIGN", "VARIABLE", "PLUS", "NUMBER", "ELSE", "VARIABLE", "ASSIGN", "VARIABLE", "FI", "END"))
