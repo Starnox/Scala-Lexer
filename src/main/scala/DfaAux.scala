@@ -10,6 +10,10 @@ class DfaAux[A] (val start: Set[A], val finalStates: Set[Set[A]], val transition
     transitions.keys.map(_._1).toSet ++ transitions.values.toSet ++ finalStates ++ Set(start)
   }
 
+  /**
+   * Reverse the given DFA
+   * @return the new reversed DFA
+   */
   def reverse(): DfaAux[A] = {
     var reversedTransitions = Map[(Set[A], Char), Set[A]]()
     for (t <- transitions) {
@@ -82,6 +86,11 @@ object DfaAux {
     fromNfa(nfa)
   }
 
+  /**
+   * Convert a dfa to an aux dfa
+   * @param dfa the dfa to convert
+   * @return the aux DFA
+   */
   def apply [A](dfa: Dfa[A]) : DfaAux[A] = {
     new DfaAux(Set(dfa.start), Set(dfa.finalStates), dfa.transitions.map(t => (Set(t._1._1), t._1._2) -> Set(t._2)))
   }

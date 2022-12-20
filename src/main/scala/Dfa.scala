@@ -66,6 +66,11 @@ object Dfa {
     fromDfaAux(DfaAux.fromPrenex(str))
   }
 
+  /**
+   * Convert an aux DFA to a DFA
+   * @param dfaAux the aux DFA to convert
+   * @return a DFA
+   */
   def fromDfaAux(dfaAux: DfaAux[Int]): Dfa[Int] = {
     val stateMap = dfaAux.getStates.zipWithIndex.toMap // maps the states of the aux DFA to new states
     // create a DFA with the new states
@@ -75,6 +80,12 @@ object Dfa {
           dfaAux.transitions.map{case ((s, c), s2) => (stateMap(s), c) -> stateMap(s2)})
   }
 
+  /**
+   * Convert an aux DFA to a DFA maintaining the properties of the final states
+   * @param dfaAux the aux DFA to convert
+   * @param properties the properties of the final states
+   * @return a DFA
+   */
   def fromDfaAuxWithProperties(dfaAux: DfaAux[Int], properties: Map[Int, String]): (Dfa[Int], Map[Int,Set[String]]) = {
     val stateMap = dfaAux.getStates.zipWithIndex.toMap // maps the states of the aux DFA to new states
     // Add the properties of the states to the index

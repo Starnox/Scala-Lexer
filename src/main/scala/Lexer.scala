@@ -3,6 +3,11 @@ import Lexer._
 class Lexer (spec: String, dfa: Dfa[Int], stateMap: Map[Int, Set[String]], priorities: Map[String, Int]
             ,skipWhiteSpaces: Boolean = true, skipNewLines: Boolean = true) {
 
+  /**
+   * In case of multiple matches, the token with the highest priority is returned.
+   * @param tokens the tokens to choose from
+   * @return the token with the highest priority
+   */
   def getTokenHeighestPriority(tokens: Set[String]): String = {
     tokens.minBy(priorities(_))
   }
@@ -69,6 +74,11 @@ class Lexer (spec: String, dfa: Dfa[Int], stateMap: Map[Int, Set[String]], prior
 
 object Lexer {
 
+  /**
+   * Creates a lexer from a given specification.
+   * @param spec the specification of the lexer
+   * @return the lexer
+   */
   def apply(spec: String): Lexer = {
     // split the string into lines
     val lines = spec.split("\n")
